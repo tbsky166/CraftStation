@@ -48,12 +48,11 @@ public partial class WebPreviewWindow : Window
 #if !DEBUG
             settings.AreDevToolsEnabled = false;
 #endif
-            var webRoot = Path.Combine(
-                AppContext.BaseDirectory, Config.WebAssetsDirectoryName, Config.WebRootDirectoryName);
-            WebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                Config.WebViewVirtualHostName,
-                webRoot,
-                CoreWebView2HostResourceAccessKind.Allow);
+            // 所有 Web 资源内嵌在程序集里，通过 WebResourceRequested 按虚拟域名提供
+            WebView.CoreWebView2.AddWebResourceRequestedFilter(
+                $"https://{Config.WebViewVirtualHostName}/*",
+                CoreWebView2WebResourceContext.All);
+            WebView.CoreWebView2.WebResourceRequested += OnWebResourceRequested;
             WebView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
             _bridge = App.Services.GetRequiredService<HtmlBridge>();
             _bridge.Notify = (eventName, json) =>
@@ -97,6 +96,58 @@ public partial class WebPreviewWindow : Window
             Log.Error(ex, "Web 桥接处理失败");
         }
     }
+
+    private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
+    {
+        try
+        {
+            var uri = new Uri(e.Request.Uri);
+            if (!uri.Host.Equals(Config.WebViewVirtualHostName, StringComparison.OrdinalIgnoreCase))
+                return;
+
+            var assembly = typeof(WebPreviewWindow).Assembly;
+            var rel = uri.AbsolutePath.TrimStart('/').Replace('/', '.');
+            var resourceName = $"{assembly.GetName().Name}.{Config.WebAssetsDirectoryName}.{Config.WebRootDirectoryName}.{rel}";
+            using var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                e.Response = WebView.CoreWebView2.Environment.CreateWebResourceResponse(
+                    null, 404, "Not Found", "Content-Type: text/plain");
+                return;
+            }
+
+            var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            buffer.Position = 0;
+            var mime = GetMimeType(Path.GetExtension(uri.AbsolutePath));
+            e.Response = WebView.CoreWebView2.Environment.CreateWebResourceResponse(
+                buffer, 200, "OK", $"Content-Type: {mime}");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Web 资源加载失败");
+        }
+    }
+
+    private static string GetMimeType(string extension) => extension.ToLowerInvariant() switch
+    {
+        ".html" or ".htm" => "text/html; charset=utf-8",
+        ".css" => "text/css; charset=utf-8",
+        ".js" or ".mjs" => "application/javascript; charset=utf-8",
+        ".json" => "application/json; charset=utf-8",
+        ".ttf" => "font/ttf",
+        ".woff" => "font/woff",
+        ".woff2" => "font/woff2",
+        ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".svg" => "image/svg+xml",
+        ".ico" => "image/x-icon",
+        ".mp3" => "audio/mpeg",
+        ".ogg" => "audio/ogg",
+        ".wav" => "audio/wav",
+        _ => "application/octet-stream"
+    };
 
     internal void MinimizeWindow() => WindowState = WindowState.Minimized;
 

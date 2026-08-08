@@ -16,7 +16,8 @@
   <ItemGroup>
     <Resource Include="Assets\Fonts\Rajdhani-SemiBold.ttf" />
     <Resource Include="Assets\Fonts\Rajdhani-Medium.ttf" />
-    <Content Include="Assets\Web\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <!-- Web 界面资源编译进程序集，发布后不残留 Assets 文件夹 -->
+    <EmbeddedResource Include="Assets\Web\**\*" />
   </ItemGroup>
 
   <ItemGroup>
