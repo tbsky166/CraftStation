@@ -3,6 +3,7 @@
 const NAV = [
   { key: "dashboard", label: "仪表盘", sub: "Home", icon: "◧" },
   { key: "versions", label: "版本库", sub: "Versions", icon: "▦" },
+  { key: "downloads", label: "下载中心", sub: "Downloads", icon: "⬇" },
   { key: "instances", label: "实例", sub: "Instances", icon: "▤" },
   { key: "resources", label: "资源管理", sub: "Resources", icon: "▣" },
   { key: "store", label: "资源市场", sub: "Store", icon: "◫" },
@@ -25,6 +26,12 @@ const state = {
   versions: [],
   instances: [],
   selVersion: null,
+  versionFilter: "all",
+  downloadVersion: null,
+  downloadRunning: false,
+  downloadPercent: 0,
+  downloadStatus: "等待中…",
+  downloadLogs: [],
   selInstance: null,
   resources: { mods: [], resourcePacks: [], shaderPacks: [], saves: [] },
   resourceTab: "mods",
@@ -59,6 +66,8 @@ window.__csCallback = (id, ok, data) => {
 
 window.__csEvent = (name, data) => {
   if (name === "deviceCode") showDeviceCode(data);
+  if (name === "installProgress") onInstallProgress(data);
+  if (name === "installLog") onInstallLog(data);
 };
 
 // 禁用浏览器右键菜单，防止出现 Chromium 默认菜单
@@ -152,6 +161,7 @@ async function renderPage() {
   switch (state.page) {
     case "dashboard": content.innerHTML = dashboardHtml(); bindDashboard(); break;
     case "versions": await refreshVersions(); content.innerHTML = versionsHtml(); bindVersions(); break;
+    case "downloads": content.innerHTML = downloadsHtml(); bindDownloads(); break;
     case "instances": await refreshInstances(); content.innerHTML = instancesHtml(); bindInstances(); break;
     case "resources": await refreshResources(); content.innerHTML = resourcesHtml(); bindResources(); break;
     case "store": content.innerHTML = storeHtml(); bindStore(); break;
@@ -356,14 +366,23 @@ function updateDashboardLive(r) {
 
 function versionsHtml() {
   const q = (state.selVersion ?? "").toLowerCase();
-  const list = state.versions
-    .filter((v) => !q || v.name.toLowerCase().includes(q))
-    .slice(0, 80)
-    .map((v) => `
+  const filter = state.versionFilter || "all";
+  const countOf = (c) => state.versions.filter((v) => v.category === c).length;
+  const filters = [
+    { key: "all", label: "全部", count: state.versions.length },
+    { key: "release", label: "正式版", count: countOf("release") },
+    { key: "snapshot", label: "快照版", count: countOf("snapshot") },
+    { key: "aprilfools", label: "愚人节", count: countOf("aprilfools") },
+    { key: "old", label: "远古版", count: countOf("old") },
+  ];
+  const filtered = state.versions.filter(
+    (v) => (filter === "all" || v.category === filter) && (!q || v.name.toLowerCase().includes(q))
+  );
+  const list = filtered.map((v) => `
     <div class="list-item" data-name="${escapeHtml(v.name)}">
       <div>
         <div class="item-title">${escapeHtml(v.name)}</div>
-        <div class="item-sub">${escapeHtml(v.typeLabel)} · ${escapeHtml(v.releaseTimeUtc || "-")}</div>
+        <div class="item-sub">${escapeHtml(v.typeLabel)}${v.category === "aprilfools" ? " · 愚人节" : ""} · ${escapeHtml(v.releaseTimeUtc || "-")}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
         ${v.isInstalled ? '<span class="tag tag--success">已安装</span>' : ""}
@@ -379,19 +398,11 @@ function versionsHtml() {
       <input class="wiki-input" id="versionSearch" placeholder="筛选版本…" value="${escapeHtml(state.selVersion || "")}" style="max-width:280px"/>
       <button class="btn ef-chamfer-sm" id="versionsRefresh">刷新</button>
     </div>
-    <div class="list" style="margin-top:16px">${list || '<div class="placeholder ef-chamfer">暂无版本</div>'}</div>
-    <section class="industrial-card ef-chamfer" style="margin-top:18px">
-      <div class="eyebrow">加载器安装</div>
-      <div class="form-row" style="margin-top:10px">
-        <select class="wiki-input" id="loaderKind">
-          ${["Fabric", "Forge", "Quilt", "NeoForge", "OptiFine", "LiteLoader"].map((l) => `<option>${l}</option>`).join("")}
-        </select>
-        <select class="wiki-input" id="loaderVersion"><option value="">获取可用版本…</option></select>
-        <button class="btn ef-chamfer-sm" id="loadLoaderVersions">获取版本</button>
-        <button class="btn btn-primary ef-chamfer-sm" id="installLoader">安装加载器</button>
-      </div>
-      <p class="stat-label" style="margin-top:8px">目标版本：${escapeHtml(state.selVersion || "未选择（请在列表中点击版本）")}</p>
-    </section>
+    <div class="tabs" style="margin-top:14px">${filters.map((f) => `<button class="tab ${filter === f.key ? "tab--active" : ""}" data-filter="${f.key}">${f.label}<span class="filter-count">${f.count}</span></button>`).join("")}</div>
+    <p class="stat-label" style="margin-top:10px">共 ${state.versions.length} 个版本，当前显示 ${filtered.length} 个</p>
+    <div class="list" style="margin-top:8px">${list || '<div class="placeholder ef-chamfer">暂无版本</div>'}</div>
+    <p class="stat-label" style="margin-top:16px">点击「安装」进入下载中心，可选择加载器并实时查看进度与日志。</p>
+
   </div>`;
 }
 
@@ -404,15 +415,16 @@ function bindVersions() {
     await refreshVersions();
     renderPage();
   });
-  document.querySelectorAll("[data-install]").forEach((el) =>
-    el.addEventListener("click", async () => {
-      const restore = busyBtn(el, "安装中…");
-      toast("正在下载安装版本…");
-      const r = await csCall("installVersion", { name: el.dataset.install });
-      restore();
-      resultToast(r);
-      await refreshVersions();
+  document.querySelectorAll("[data-filter]").forEach((el) =>
+    el.addEventListener("click", () => {
+      state.versionFilter = el.dataset.filter;
       renderPage();
+    }));
+  document.querySelectorAll("[data-install]").forEach((el) =>
+    el.addEventListener("click", () => {
+      state.downloadVersion = el.dataset.install;
+      state.selVersion = el.dataset.install;
+      navigate("downloads");
     }));
   document.querySelectorAll("[data-repair]").forEach((el) =>
     el.addEventListener("click", async () => {
@@ -432,27 +444,148 @@ function bindVersions() {
       renderPage();
     }));
   document.querySelectorAll(".list-item[data-name]").forEach((el) =>
-    el.addEventListener("click", () => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("button, a, input, select, label")) return;
       state.selVersion = el.dataset.name;
       renderPage();
     }));
-  document.getElementById("loadLoaderVersions").addEventListener("click", async () => {
-    if (!state.selVersion) return toast("请先在列表中点击选择版本", true);
-    const loader = document.getElementById("loaderKind").value;
-    const r = await csCall("getLoaderVersions", { version: state.selVersion, loader });
-    const sel = document.getElementById("loaderVersion");
-    sel.innerHTML = (r?.versions ?? []).map((v) => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join("");
+
+}
+
+/* ---------------- 下载中心 ---------------- */
+
+function downloadsHtml() {
+  const v = state.downloadVersion || state.selVersion || "";
+  const showProgress = state.downloadRunning || state.downloadPercent > 0;
+  return `
+  <div class="page">
+    <h1 class="page-title">下载中心</h1>
+    <section class="industrial-card ef-chamfer" style="margin-top:12px">
+      <div class="eyebrow">安装任务</div>
+      <div class="form-grid" style="margin-top:10px">
+        <label>游戏版本<input class="wiki-input" id="dlVersion" value="${escapeHtml(v)}" placeholder="如 1.21.1"/></label>
+        <label>加载器
+          <select class="wiki-input" id="dlLoaderKind">
+            <option value="">无（纯净版）</option>
+            ${["Fabric", "Forge", "Quilt", "NeoForge", "OptiFine", "LiteLoader"].map((l) => `<option>${l}</option>`).join("")}
+          </select>
+        </label>
+        <label>加载器版本
+          <select class="wiki-input" id="dlLoaderVersion"><option value="">自动选择最新版</option></select>
+        </label>
+        <label class="check-line"><input type="checkbox" id="dlCreateInstance" checked/> 安装完成后创建实例</label>
+      </div>
+      <div class="form-row" style="margin-top:12px">
+        <button class="btn btn-primary ef-chamfer-sm" id="dlStart">开始安装</button>
+        <button class="btn ef-chamfer-sm" id="dlClear">清除日志</button>
+      </div>
+      <div id="dlProgressWrap" style="margin-top:14px" ${showProgress ? "" : "hidden"}>
+        <div class="progress-track"><div class="progress-bar" id="dlProgressBar" style="width:${state.downloadPercent}%"></div></div>
+        <div class="form-row" style="justify-content:space-between;margin-top:6px">
+          <span class="stat-label" id="dlStatus">${escapeHtml(state.downloadStatus)}</span>
+          <span class="stat-label" id="dlPercent">${Math.round(state.downloadPercent)}%</span>
+        </div>
+      </div>
+      <pre class="download-log" id="dlLog">${escapeHtml(state.downloadLogs.join("\n"))}</pre>
+    </section>
+  </div>`;
+}
+
+function bindDownloads() {
+  const versionInput = document.getElementById("dlVersion");
+  const loaderKind = document.getElementById("dlLoaderKind");
+  const loaderVersion = document.getElementById("dlLoaderVersion");
+  const loadVersions = () => fetchLoaderVersions(versionInput.value.trim(), loaderKind.value, loaderVersion);
+  versionInput.addEventListener("change", loadVersions);
+  loaderKind.addEventListener("change", loadVersions);
+  document.getElementById("dlStart").addEventListener("click", startDownload);
+  document.getElementById("dlClear").addEventListener("click", () => {
+    state.downloadLogs = [];
+    const log = document.getElementById("dlLog");
+    if (log) log.textContent = "";
   });
-  document.getElementById("installLoader").addEventListener("click", async () => {
-    if (!state.selVersion) return toast("请先选择版本", true);
-    const loader = document.getElementById("loaderKind").value;
-    const loaderVersion = document.getElementById("loaderVersion").value || null;
-    const btn = document.getElementById("installLoader");
-    const restore = busyBtn(btn, "安装中…");
-    toast("正在安装加载器…");
-    const r = await csCall("installLoader", { version: state.selVersion, loader, loaderVersion });
-    restore();
+  loadVersions();
+}
+
+async function startDownload() {
+  const versionInput = document.getElementById("dlVersion");
+  const version = versionInput.value.trim();
+  if (!version) return toast("请填写游戏版本", true);
+  if (state.downloadRunning) return toast("已有安装任务进行中", true);
+
+  const loader = document.getElementById("dlLoaderKind").value;
+  const loaderVersion = document.getElementById("dlLoaderVersion").value || "";
+  const createInstance = document.getElementById("dlCreateInstance").checked;
+
+  state.downloadRunning = true;
+  state.downloadPercent = 0;
+  state.downloadStatus = "正在准备…";
+  state.downloadLogs = [];
+  appendDownloadLog(`开始安装 ${version}${loader ? " + " + loader : ""}`);
+  updateDownloadUi();
+
+  const btn = document.getElementById("dlStart");
+  const restore = busyBtn(btn, "安装中…");
+  btn.disabled = true;
+  const r = await csCall("installVersionCustom", { name: version, loader, loaderVersion, createInstance });
+  btn.disabled = false;
+  restore();
+  state.downloadRunning = false;
+
+  if (r?.error) {
+    state.downloadStatus = r.error;
+    appendDownloadLog("[错误] " + r.error);
     resultToast(r);
+  } else {
+    state.downloadPercent = 100;
+    state.downloadStatus = r?.message ?? "安装完成";
+    appendDownloadLog(r?.message ?? "安装完成");
+    resultToast(r);
+  }
+  updateDownloadUi();
+  await refreshVersions();
+  await refreshInstances();
+}
+
+function onInstallProgress(data) {
+  if (!data) return;
+  state.downloadPercent = Math.max(0, Math.min(100, data.percent ?? state.downloadPercent));
+  state.downloadStatus = data.message || state.downloadStatus;
+  updateDownloadUi();
+}
+
+function onInstallLog(data) {
+  if (!data?.line) return;
+  state.downloadLogs.push(data.line);
+  if (state.downloadLogs.length > 1000) state.downloadLogs.splice(0, state.downloadLogs.length - 1000);
+  appendDownloadLog(data.line);
+}
+
+function updateDownloadUi() {
+  const wrap = document.getElementById("dlProgressWrap");
+  if (!wrap) return;
+  wrap.hidden = false;
+  document.getElementById("dlProgressBar").style.width = `${state.downloadPercent}%`;
+  document.getElementById("dlStatus").textContent = state.downloadStatus || "";
+  document.getElementById("dlPercent").textContent = `${Math.round(state.downloadPercent)}%`;
+}
+
+function appendDownloadLog(line) {
+  const log = document.getElementById("dlLog");
+  if (!log) return;
+  log.textContent += (log.textContent ? "\n" : "") + line;
+  log.scrollTop = log.scrollHeight;
+}
+
+async function fetchLoaderVersions(version, loader, selectEl) {
+  selectEl.innerHTML = '<option value="">自动选择最新版</option>';
+  if (!version || !loader) return;
+  const r = await csCall("getLoaderVersions", { version, loader });
+  (r?.versions ?? []).forEach((v) => {
+    const opt = document.createElement("option");
+    opt.value = v;
+    opt.textContent = v;
+    selectEl.appendChild(opt);
   });
 }
 

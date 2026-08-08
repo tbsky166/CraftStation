@@ -73,6 +73,7 @@ public sealed class HtmlBridge
             "getState" => await GetStateAsync(),
             "getVersions" => await GetVersionsAsync(),
             "installVersion" => await InstallVersionAsync(Str(payload, "name")),
+            "installVersionCustom" => await InstallVersionCustomAsync(payload),
             "repairVersion" => await RepairVersionAsync(Str(payload, "name")),
             "deleteVersion" => await DeleteVersionAsync(Str(payload, "name")),
             "getLoaderVersions" => await GetLoaderVersionsAsync(Str(payload, "version"), Str(payload, "loader")),
@@ -222,6 +223,7 @@ public sealed class HtmlBridge
             {
                 v.Name,
                 v.TypeLabel,
+                v.Category,
                 v.IsInstalled,
                 ReleaseTimeUtc = v.ReleaseTimeUtc?.ToString("yyyy-MM-dd")
             })
@@ -245,6 +247,104 @@ public sealed class HtmlBridge
         {
             return new { message = $"安装失败：{ex.Message}" };
         }
+    }
+
+    private async Task<object> InstallVersionCustomAsync(JsonElement payload)
+    {
+        var name = Str(payload, "name");
+        if (string.IsNullOrWhiteSpace(name))
+            return new { message = "缺少版本名" };
+
+        var loader = Str(payload, "loader") ?? "";
+        var loaderVersion = Str(payload, "loaderVersion") ?? "";
+        var createInstance = Bool(payload, "createInstance", true);
+
+        try
+        {
+            PushInstallProgress(0, $"准备安装 {name}…");
+            PushInstallLog($"[下载中心] 开始安装 {name}");
+
+            // 先确保纯净版已安装
+            var versionDir = Path.Combine(
+                _settings.ResolveGameDirectory(), Config.MinecraftVersionsDirectoryName, name);
+            if (!Directory.Exists(versionDir))
+            {
+                PushInstallLog($"[下载中心] 正在下载纯净版 {name}…");
+                await _launcher.InstallAsync(name, new Progress<DownloadProgress>(p =>
+                {
+                    var percent = (int)Math.Clamp(p.Percent / 2, 0, 50);
+                    PushInstallProgress(percent, $"正在下载 {p.CurrentFile ?? name}（{p.CompletedFiles}/{p.TotalFiles}）");
+                    PushInstallLog($"[下载] {p.CurrentFile ?? name}（{p.CompletedFiles}/{p.TotalFiles}）");
+                }));
+                PushInstallLog($"[下载中心] 纯净版 {name} 下载完成");
+            }
+            else
+            {
+                PushInstallLog($"[下载中心] 纯净版 {name} 已存在，跳过下载");
+                PushInstallProgress(50, "纯净版已就绪，准备加载器…");
+            }
+
+            var kind = ParseLoader(loader);
+            var resolvedName = name;
+            if (kind != LoaderKind.Vanilla)
+            {
+                PushInstallLog($"[下载中心] 开始安装加载器 {loader}…");
+                resolvedName = await _loaders.InstallAsync(
+                    name,
+                    kind,
+                    string.IsNullOrWhiteSpace(loaderVersion) ? null : loaderVersion,
+                    new Progress<DownloadProgress>(p =>
+                    {
+                        var percent = (int)Math.Clamp(50 + p.Percent / 2, 50, 95);
+                        PushInstallProgress(percent, $"加载器 {p.CurrentFile ?? loader}（{p.CompletedFiles}/{p.TotalFiles}）");
+                        PushInstallLog($"[加载器] {p.CurrentFile ?? loader}（{p.CompletedFiles}/{p.TotalFiles}）");
+                    }),
+                    new Progress<string>(line => PushInstallLog($"[加载器] {line}")));
+                PushInstallLog($"[下载中心] 加载器安装完成：{resolvedName}");
+            }
+
+            PushInstallProgress(96, "正在创建实例…");
+            if (createInstance)
+            {
+                var existing = _instances.Instances.FirstOrDefault(i =>
+                    string.Equals(i.VersionId, name, StringComparison.OrdinalIgnoreCase) &&
+                    i.Loader == kind);
+                if (existing != null)
+                {
+                    existing.Loader = kind;
+                    existing.LoaderVersion = kind == LoaderKind.Vanilla ? null : resolvedName;
+                    await _instances.UpdateAsync(existing);
+                }
+                else
+                {
+                    var instance = await _instances.CreateAsync(name, name, kind);
+                    instance.LoaderVersion = kind == LoaderKind.Vanilla ? null : resolvedName;
+                    await _instances.UpdateAsync(instance);
+                }
+            }
+
+            PushInstallProgress(100, "安装完成");
+            return new
+            {
+                message = kind == LoaderKind.Vanilla
+                    ? $"安装完成：{name}"
+                    : $"安装完成：{name} + {loader}（{resolvedName}）"
+            };
+        }
+        catch (Exception ex)
+        {
+            return new { message = $"安装失败：{ex.Message}" };
+        }
+    }
+
+    private void PushInstallProgress(int percent, string message)
+    {
+        Notify?.Invoke("installProgress", JsonSerializer.Serialize(new { percent, message }, JsonOpts));
+    }
+
+    private void PushInstallLog(string line)
+    {
+        Notify?.Invoke("installLog", JsonSerializer.Serialize(new { line }, JsonOpts));
     }
 
     private async Task<object> RepairVersionAsync(string? name)
@@ -307,7 +407,7 @@ public sealed class HtmlBridge
             if (current != null && current.VersionId == version)
             {
                 current.Loader = kind;
-                current.LoaderVersion = loaderVersion ?? "latest";
+                current.LoaderVersion = installedName;
                 await _instances.UpdateAsync(current);
             }
             return new { message = $"加载器安装完成：{installedName}" };

@@ -148,6 +148,39 @@ html, body {
   margin-right: -16px;
   margin-left: 4px;
 }
+.filter-count {
+  font-size: 11px;
+  color: var(--ink-subtle);
+  margin-left: 6px;
+}
+
+/* ---- 下载中心：进度条 / 安装日志 ---- */
+.progress-track {
+  height: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+  transition: width 0.2s ease;
+}
+.download-log {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  line-height: 1.55;
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
 .window-control {
   width: 44px;
   border: none;
