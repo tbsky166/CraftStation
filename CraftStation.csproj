@@ -4,6 +4,15 @@
     <ProjectReference Include="CraftStation.Core\CraftStation.Core.csproj" />
   </ItemGroup>
 
+  <!-- 子模块目录不参与本项目的默认编译/资源扫描 -->
+  <ItemGroup>
+    <Compile Remove="CraftStation.Core/**;CraftStation.Tests/**" />
+    <None Remove="CraftStation.Core/**;CraftStation.Tests/**" />
+    <Content Remove="CraftStation.Core/**;CraftStation.Tests/**" />
+    <Resource Remove="CraftStation.Core/**;CraftStation.Tests/**" />
+    <Page Remove="CraftStation.Core/**;CraftStation.Tests/**" />
+  </ItemGroup>
+
   <ItemGroup>
     <Resource Include="Assets\Fonts\Rajdhani-SemiBold.ttf" />
     <Resource Include="Assets\Fonts\Rajdhani-Medium.ttf" />
