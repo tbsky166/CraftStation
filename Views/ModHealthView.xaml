@@ -1,0 +1,112 @@
+<UserControl x:Class="CraftStation.Views.ModHealthView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="模组体检" Style="{StaticResource PageTitleStyle}"/>
+            <StackPanel Orientation="Horizontal">
+                <Button Content="开始扫描" Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding ScanCommand}"/>
+                <Button Content="导出报告" Style="{StaticResource SecondaryButtonStyle}"
+                        Command="{Binding ExportReportCommand}" Margin="8,0,0,0"/>
+            </StackPanel>
+            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextDimBrush}" Margin="0,10,0,0"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="问题列表" Style="{StaticResource SectionTitleStyle}"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Issues}"
+                             SelectedItem="{Binding SelectedIssue, Mode=TwoWay}"
+                             ItemContainerStyle="{StaticResource NavItemStyle}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Style="{StaticResource PillBadgeStyle}" Background="{StaticResource PanelBrush}"
+                                                BorderBrush="{Binding Severity, Converter={StaticResource SeverityToBrushConverter}}"
+                                                Margin="0,0,8,0">
+                                            <TextBlock Text="{Binding SeverityLabel}" FontWeight="Bold"
+                                                       Foreground="{Binding Severity, Converter={StaticResource SeverityToBrushConverter}}"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}" FontSize="13" Margin="8,0,0,0"/>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Detail}" FontSize="11"
+                                               Foreground="{StaticResource TextFaintBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="模组列表" Style="{StaticResource SectionTitleStyle}"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Mods}"
+                             SelectedItem="{Binding SelectedMod, Mode=TwoWay}"
+                             ItemContainerStyle="{StaticResource NavItemStyle}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Display}" FontSize="13" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Version}" FontSize="11" Foreground="{StaticResource TextFaintBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Content="依赖树" Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding ShowDependenciesCommand}" CommandParameter="{Binding SelectedMod}"/>
+                        <Button Content="禁用" Style="{StaticResource SecondaryButtonStyle}"
+                                Command="{Binding DisableCommand}" CommandParameter="{Binding SelectedMod}" Margin="8,0,0,0"/>
+                        <Button Content="删除" Style="{StaticResource DangerButtonStyle}"
+                                Command="{Binding DeleteCommand}" CommandParameter="{Binding SelectedMod}" Margin="8,0,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource CardStyle}" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="依赖关系" Style="{StaticResource SectionTitleStyle}"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding DependencyTree}"
+                             ItemContainerStyle="{StaticResource NavItemStyle}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Display}" FontSize="13"/>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

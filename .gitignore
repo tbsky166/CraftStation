@@ -1,0 +1,13 @@
+# Build output
+bin/
+obj/
+.vs/
+*.user
+
+# Runtime data (never commit user data / tokens / accounts)
+data/
+instances/
+.minecraft/
+
+# Local WebView2 / debug artifacts
+*.exe.WebView2/

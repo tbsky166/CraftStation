@@ -1,0 +1,6 @@
+[submodule "CraftStation.Core"]
+	path = CraftStation.Core
+	url = ../CraftStation.Core
+[submodule "CraftStation.Tests"]
+	path = CraftStation.Tests
+	url = ../CraftStation.Tests

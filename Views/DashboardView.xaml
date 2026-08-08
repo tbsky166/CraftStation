@@ -1,0 +1,289 @@
+<UserControl x:Class="CraftStation.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Loaded="Dashboard_OnLoaded">
+    <UserControl.Resources>
+        <Storyboard x:Key="ScanBeamAnim" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="ScanBeam"
+                             Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)"
+                             From="-220" To="2600" Duration="0:0:7.5"/>
+        </Storyboard>
+        <Storyboard x:Key="BreathAnim" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="CmykBreath"
+                             Storyboard.TargetProperty="Opacity"
+                             From="0.55" To="1" Duration="0:0:1.6"/>
+        </Storyboard>
+    </UserControl.Resources>
+
+    <ScrollViewer x:Name="RootScroll" VerticalScrollBarVisibility="Auto"
+                  ScrollChanged="RootScroll_OnScrollChanged">
+        <StackPanel Margin="0,0,12,0">
+
+            <!-- ============ Hero ============ -->
+            <Border Background="#191919" BorderBrush="{StaticResource PanelAltBrush}"
+                    BorderThickness="1" CornerRadius="2" ClipToBounds="True"
+                    Margin="0,0,0,14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="4"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Rectangle x:Name="CmykBreath" Fill="{StaticResource CmykStripBrush}" Opacity="0.85"/>
+
+                    <Grid Grid.Row="1" Margin="38,32,38,30">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock x:Name="HeroEyebrow" Text="CORE CHAPTER / 核心章节"
+                                       Style="{StaticResource EyebrowStyle}"
+                                       Opacity="0" RenderTransformOrigin="0.5,0">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform Y="22"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock x:Name="HeroTitle" Text="CRAFTSTATION"
+                                       Style="{StaticResource HeroTitleStyle}"
+                                       Margin="0,8,0,0"
+                                       Opacity="0" RenderTransformOrigin="0.5,0">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform Y="22"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <TextBlock x:Name="HeroSubtitle" Text="我的世界 Java 启动器"
+                                       Style="{StaticResource HeroSubtitleStyle}"
+                                       Margin="0,6,0,0"
+                                       Opacity="0" RenderTransformOrigin="0.5,0">
+                                <TextBlock.RenderTransform>
+                                    <TranslateTransform Y="22"/>
+                                </TextBlock.RenderTransform>
+                            </TextBlock>
+                            <StackPanel x:Name="HeroMeta" Orientation="Horizontal" Margin="0,26,0,0"
+                                        Opacity="0" RenderTransformOrigin="0.5,0">
+                                <StackPanel.RenderTransform>
+                                    <TranslateTransform Y="22"/>
+                                </StackPanel.RenderTransform>
+                                <TextBlock Text="当前实例" Foreground="{StaticResource TextFaintBrush}" FontSize="12"/>
+                                <TextBlock Text="{Binding InstanceName}" Foreground="{StaticResource TextDimBrush}"
+                                           FontWeight="SemiBold" FontSize="14" Margin="10,0,0,0"/>
+                                <TextBlock Text="{Binding InstanceVersion, StringFormat=版本 {0}}"
+                                           Foreground="{StaticResource TextFaintBrush}" FontSize="12"
+                                           Margin="12,2,0,0"/>
+                            </StackPanel>
+                            <Button x:Name="HeroButton" Content="启 动 游 戏"
+                                    Style="{StaticResource HeroButtonStyle}"
+                                    Command="{Binding LaunchCommand}" Margin="0,22,0,0"
+                                    HorizontalAlignment="Left"
+                                    Opacity="0" RenderTransformOrigin="0.5,0">
+                                <Button.RenderTransform>
+                                    <TranslateTransform Y="22"/>
+                                </Button.RenderTransform>
+                            </Button>
+                            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextFaintBrush}"
+                                       Margin="0,16,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+
+                        <Border x:Name="HeroStatusPanel" Grid.Column="1"
+                                Background="{StaticResource PanelBrush}"
+                                BorderBrush="{StaticResource BorderBrush}" BorderThickness="1"
+                                CornerRadius="2" Padding="18,16" MinWidth="230" MaxWidth="300"
+                                VerticalAlignment="Center" Margin="36,0,0,0"
+                                Opacity="0" RenderTransformOrigin="0.5,0">
+                            <Border.RenderTransform>
+                                <TranslateTransform Y="24"/>
+                            </Border.RenderTransform>
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="7" Height="7" Fill="{StaticResource SuccessBrush}"
+                                             Margin="0,3,8,0"/>
+                                    <TextBlock Text="SYSTEM STATUS" FontFamily="{StaticResource DisplayFont}"
+                                               FontWeight="SemiBold" FontSize="13"
+                                               Foreground="{StaticResource ComplementBrush}"/>
+                                </StackPanel>
+                                <Rectangle Height="1" Fill="{StaticResource BorderBrush}" Margin="0,12,0,10"/>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Text="JAVA" Style="{StaticResource MonoLabelStyle}"/>
+                                    <TextBlock Grid.Column="1" Text="AUTO" Style="{StaticResource MonoLabelStyle}"
+                                               Foreground="{StaticResource TextDimBrush}"/>
+                                    <TextBlock Grid.Row="1" Text="MIRROR" Style="{StaticResource MonoLabelStyle}"
+                                               Margin="0,7,0,0"/>
+                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="BMCLAPI + OFFLINE"
+                                               Style="{StaticResource MonoLabelStyle}"
+                                               Foreground="{StaticResource TextDimBrush}" Margin="14,7,0,0"/>
+                                    <TextBlock Grid.Row="2" Text="ACCOUNT" Style="{StaticResource MonoLabelStyle}"
+                                               Margin="0,7,0,0"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccountName}"
+                                               Style="{StaticResource MonoLabelStyle}"
+                                               Foreground="{StaticResource TextDimBrush}" Margin="14,7,0,0"/>
+                                    <TextBlock Grid.Row="3" Text="VERSION" Style="{StaticResource MonoLabelStyle}"
+                                               Margin="0,7,0,0"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding InstanceVersion}"
+                                               Style="{StaticResource MonoLabelStyle}"
+                                               Foreground="{StaticResource TextDimBrush}" Margin="14,7,0,0"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Rectangle x:Name="ScanBeam" Width="160" Fill="{StaticResource ScanGlowBrush}"
+                               HorizontalAlignment="Left" VerticalAlignment="Stretch"
+                               IsHitTestVisible="False" RenderTransformOrigin="0.5,0.5">
+                        <Rectangle.RenderTransform>
+                            <TranslateTransform X="-180"/>
+                        </Rectangle.RenderTransform>
+                    </Rectangle>
+                </Grid>
+            </Border>
+
+            <!-- ============ 账户 / 版本统计 ============ -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Border x:Name="AccountCard" Style="{StaticResource CardStyle}" Margin="0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Border.RenderTransform>
+                        <TranslateTransform Y="22"/>
+                    </Border.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="账户" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBlock Text="{Binding AccountName}" FontSize="17" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <Border x:Name="StatsCard" Grid.Column="2" Style="{StaticResource CardStyle}" Margin="0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Border.RenderTransform>
+                        <TranslateTransform Y="22"/>
+                    </Border.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="版本统计" Style="{StaticResource SectionTitleStyle}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="{Binding TotalVersions}" FontSize="22"
+                                           FontFamily="{StaticResource DisplayFont}"
+                                           Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="可用版本" Style="{StaticResource DimTextStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="{Binding InstalledVersions}" FontSize="22"
+                                           FontFamily="{StaticResource DisplayFont}"
+                                           Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="已安装" Style="{StaticResource DimTextStyle}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{Binding InstanceCount}" FontSize="22"
+                                           FontFamily="{StaticResource DisplayFont}"
+                                           Foreground="{StaticResource TextBrush}"/>
+                                <TextBlock Text="实例数量" Style="{StaticResource DimTextStyle}"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- ============ 快速入口 ============ -->
+            <TextBlock x:Name="QuickTitle" Text="快速入口 / QUICK ACCESS"
+                       Style="{StaticResource EyebrowStyle}" Margin="0,22,0,10"
+                       Foreground="{StaticResource ComplementBrush}"
+                       Opacity="0" RenderTransformOrigin="0.5,0">
+                <TextBlock.RenderTransform>
+                    <TranslateTransform Y="18"/>
+                </TextBlock.RenderTransform>
+            </TextBlock>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button x:Name="QuickCard1" Style="{StaticResource QuickActionStyle}"
+                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="versions" Margin="0,0,8,0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="18"/>
+                    </Button.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="&#xE7FC;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{StaticResource AccentBrush}"/>
+                        <TextBlock Text="版本库" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="安装 / 修复游戏版本" FontSize="11"
+                                   Foreground="{StaticResource TextFaintBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="QuickCard2" Grid.Column="1" Style="{StaticResource QuickActionStyle}"
+                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="instances" Margin="8,0,8,0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="18"/>
+                    </Button.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="&#xE8F1;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{StaticResource ComplementBrush}"/>
+                        <TextBlock Text="实例管理" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="隔离 / 启动参数 / 导入导出" FontSize="11"
+                                   Foreground="{StaticResource TextFaintBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="QuickCard3" Grid.Column="2" Style="{StaticResource QuickActionStyle}"
+                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="store" Margin="8,0,8,0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="18"/>
+                    </Button.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="&#xE8D4;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{StaticResource InfoBrush}"/>
+                        <TextBlock Text="资源市场" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="Modrinth 搜索与下载" FontSize="11"
+                                   Foreground="{StaticResource TextFaintBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Button>
+
+                <Button x:Name="QuickCard4" Grid.Column="3" Style="{StaticResource QuickActionStyle}"
+                        Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                        CommandParameter="modhealth" Margin="8,0,0,0"
+                        Opacity="0" RenderTransformOrigin="0.5,0">
+                    <Button.RenderTransform>
+                        <TranslateTransform Y="18"/>
+                    </Button.RenderTransform>
+                    <StackPanel>
+                        <TextBlock Text="&#xE9D9;" FontFamily="Segoe MDL2 Assets" FontSize="20"
+                                   Foreground="{StaticResource DangerBrush}"/>
+                        <TextBlock Text="模组体检" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                        <TextBlock Text="依赖 / 冲突 / 损坏检测" FontSize="11"
+                                   Foreground="{StaticResource TextFaintBrush}" Margin="0,3,0,0"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

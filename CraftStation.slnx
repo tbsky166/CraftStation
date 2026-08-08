@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CraftStation.csproj" />
+  <Project Path="CraftStation.Core/CraftStation.Core.csproj" />
+  <Project Path="CraftStation.Tests/CraftStation.Tests.csproj" />
+</Solution>

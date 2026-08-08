@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CraftStation · fz.wiki UI</title>
+  <link rel="stylesheet" href="app.css"/>
+</head>
+<body>
+  <div class="top-signal-strip"></div>
+  <div class="app">
+    <header class="header">
+      <div class="brand">
+        <span class="brand-mark"></span>
+        <span class="brand-name">CRAFTSTATION</span>
+        <span class="brand-divider">/</span>
+        <span class="brand-page" id="pageTitle">仪表盘</span>
+      </div>
+      <div class="header-search">
+        <input class="wiki-input" id="searchInput" type="text" placeholder="搜索版本 / 实例 / 资源…" autocomplete="off"/>
+        <span class="search-kbd">Ctrl K</span>
+      </div>
+      <div class="header-actions">
+        <span class="chip" id="instanceChip">无实例</span>
+        <span class="chip" id="accountChip">未登录</span>
+        <div class="window-controls">
+          <button class="window-control" id="winMin" title="最小化" aria-label="最小化"><span class="win-icon win-min"></span></button>
+          <button class="window-control" id="winMax" title="最大化" aria-label="最大化"><span class="win-icon win-max"></span></button>
+          <button class="window-control window-control--close" id="winClose" title="关闭" aria-label="关闭"><span class="win-icon win-close"></span></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <nav class="sidebar-nav" id="nav"></nav>
+      </aside>
+      <main class="content" id="content"></main>
+    </div>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

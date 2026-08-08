@@ -1,0 +1,114 @@
+<UserControl x:Class="CraftStation.Views.InstancesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="340"/>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0">
+            <StackPanel>
+                <TextBlock Text="实例" Style="{StaticResource PageTitleStyle}"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ComboBox IsEditable="True"
+                              ItemsSource="{Binding InstalledVersions}"
+                              Text="{Binding NewVersion, UpdateSourceTrigger=PropertyChanged}"
+                              ToolTip="已安装版本，可直接选择"/>
+                    <Button Grid.Column="1" Content="新建" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding CreateCommand}" Margin="8,0,0,0"/>
+                </Grid>
+                <TextBlock Text="{Binding InstalledVersionLabel}"
+                           Style="{StaticResource DimTextStyle}" Margin="0,6,0,0"/>
+                <ListBox ItemsSource="{Binding InstanceList}"
+                         SelectedItem="{Binding SelectedInstance, Mode=TwoWay}"
+                         ItemContainerStyle="{StaticResource NavItemStyle}"
+                         Margin="0,12,0,0"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel>
+                                <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding ResolvedVersionName}" Foreground="{StaticResource TextFaintBrush}" FontSize="11"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+                <Button Content="删除选中实例" Style="{StaticResource DangerButtonStyle}"
+                        Command="{Binding DeleteCommand}" Margin="0,12,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="实例设置" Style="{StaticResource PageTitleStyle}"/>
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel DataContext="{Binding SelectedInstance}">
+                        <TextBlock Text="名称" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="描述" Style="{StaticResource SectionTitleStyle}"/>
+                        <TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="游戏版本" Style="{StaticResource SectionTitleStyle}"/>
+                        <ComboBox IsEditable="True"
+                                  ItemsSource="{Binding DataContext.InstalledVersions, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                  Text="{Binding VersionId, UpdateSourceTrigger=PropertyChanged}"
+                                  ToolTip="从已安装版本中选择，或输入任意版本（启动时自动安装）"/>
+                        <CheckBox Content="版本隔离（mods / saves 独立）" IsChecked="{Binding VersionIsolation}"
+                                  Foreground="{StaticResource TextDimBrush}" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource CardStyle}">
+                    <StackPanel DataContext="{Binding SelectedInstance}">
+                        <TextBlock Text="启动参数" Style="{StaticResource SectionTitleStyle}"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="最小内存 (MB)" Style="{StaticResource DimTextStyle}"/>
+                                <TextBox Text="{Binding MinMemoryMb, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="8,0,0,0">
+                                <TextBlock Text="最大内存 (MB)" Style="{StaticResource DimTextStyle}"/>
+                                <TextBox Text="{Binding MaxMemoryMb, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                        </Grid>
+                        <TextBlock Text="JVM 参数" Style="{StaticResource DimTextStyle}" Margin="0,10,0,4"/>
+                        <TextBox Text="{Binding JvmArgs, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="游戏参数" Style="{StaticResource DimTextStyle}" Margin="0,10,0,4"/>
+                        <TextBox Text="{Binding GameArgs, UpdateSourceTrigger=PropertyChanged}"/>
+                        <TextBlock Text="Java 路径（留空自动）" Style="{StaticResource DimTextStyle}" Margin="0,10,0,4"/>
+                        <TextBox Text="{Binding JavaPath, UpdateSourceTrigger=PropertyChanged}"/>
+                        <CheckBox Content="全屏启动" IsChecked="{Binding Fullscreen}"
+                                  Foreground="{StaticResource TextDimBrush}" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="保存设置" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding SaveCommand}"/>
+                    <Button Content="启动" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding LaunchCommand}" Margin="8,0,0,0"/>
+                    <Button Content="打开游戏目录" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding OpenGameFolderCommand}" Margin="8,0,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button Content="导入整合包" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding ImportPackCommand}"/>
+                    <Button Content="导出整合包" Style="{StaticResource SecondaryButtonStyle}"
+                            Command="{Binding ExportPackCommand}" Margin="8,0,0,0"/>
+                    <Button Content="扫描 Java" Style="{StaticResource OutlineButtonStyle}"
+                            Command="{Binding ScanJavaCommand}" Margin="8,0,0,0"/>
+                </StackPanel>
+                <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextDimBrush}" Margin="0,12,0,0"/>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>

@@ -1,0 +1,95 @@
+<UserControl x:Class="CraftStation.Views.StoreView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="资源市场" Style="{StaticResource PageTitleStyle}"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBox Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" ToolTip="搜索关键词"/>
+                <TextBox Grid.Column="1" Text="{Binding GameVersion, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="游戏版本，如 1.20.1" Margin="8,0,0,0"/>
+                <TextBox Grid.Column="2" Text="{Binding Loader, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="加载器，如 fabric" Margin="8,0,0,0"/>
+                <ComboBox Grid.Column="3" Margin="8,0,0,0"
+                          ItemsSource="{Binding ProjectTypes}"
+                          SelectedItem="{Binding ProjectType, Mode=TwoWay}"/>
+                <Button Grid.Column="4" Content="搜索" Style="{StaticResource PrimaryButtonStyle}"
+                        Command="{Binding SearchCommand}" Margin="8,0,0,0"/>
+            </Grid>
+            <TextBlock Text="{Binding StatusText}" Foreground="{StaticResource TextDimBrush}" Margin="0,10,0,0"/>
+            <ProgressBar Value="{Binding Progress}" Maximum="100" Margin="0,6,0,0"
+                         Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0">
+                <ListBox ItemsSource="{Binding Projects}"
+                         ItemContainerStyle="{StaticResource NavItemStyle}"
+                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontSize="14" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{Binding Description}" FontSize="11"
+                                               Foreground="{StaticResource TextFaintBrush}"
+                                               TextTrimming="CharacterEllipsis" MaxWidth="420"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Content="版本" Style="{StaticResource SecondaryButtonStyle}"
+                                        Command="{Binding DataContext.LoadVersionsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" Padding="10,4"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="{Binding SelectedProject.Title, FallbackValue=选择项目查看版本}"
+                               Style="{StaticResource SectionTitleStyle}"/>
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Versions}"
+                             SelectedItem="{Binding SelectedVersion, Mode=TwoWay}"
+                             ItemContainerStyle="{StaticResource NavItemStyle}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Name}" FontSize="13"/>
+                                    <TextBlock Text="{Binding VersionNumber}" FontSize="11"
+                                               Foreground="{StaticResource TextFaintBrush}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2" Content="下载到当前实例" Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding DownloadCommand}" Margin="0,10,0,0"/>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
