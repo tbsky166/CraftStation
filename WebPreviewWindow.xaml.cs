@@ -7,6 +7,7 @@ using CraftStation.Core;
 using CraftStation.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.Wpf;
 using Serilog;
 
 namespace CraftStation;
@@ -41,6 +42,24 @@ public partial class WebPreviewWindow : Window
         try
         {
             Log.Information("WebView2 初始化开始");
+            var fixedRuntime = ResolveFixedRuntimeFolder();
+            if (fixedRuntime != null)
+            {
+                // 使用随包分发的固定版运行时，目标机无需安装 WebView2
+                WebView.CreationProperties = new CoreWebView2CreationProperties
+                {
+                    BrowserExecutableFolder = fixedRuntime,
+                    UserDataFolder = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        Config.AppName,
+                        Config.WebView2UserDataDirectoryName)
+                };
+                Log.Information("使用随包 WebView2 固定版运行时：{Runtime}", fixedRuntime);
+            }
+            else
+            {
+                Log.Information("未找到随包 WebView2 运行时，回退系统 Evergreen Runtime");
+            }
             await WebView.EnsureCoreWebView2Async();
             var settings = WebView.CoreWebView2.Settings;
             settings.AreDefaultContextMenusEnabled = false;
@@ -85,6 +104,23 @@ public partial class WebPreviewWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Error);
         }
+    }
+
+    private static string? ResolveFixedRuntimeFolder()
+    {
+        foreach (var root in new[]
+                 {
+                     AppContext.BaseDirectory,
+                     Path.Combine(
+                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                         Config.AppName)
+                 })
+        {
+            var dir = Path.Combine(root, Config.WebView2RuntimeDirectoryName);
+            if (File.Exists(Path.Combine(dir, "msedgewebview2.exe")))
+                return dir;
+        }
+        return null;
     }
 
     private async void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)

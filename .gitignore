@@ -11,6 +11,7 @@ instances/
 
 # Local WebView2 / debug artifacts
 *.exe.WebView2/
+WebView2Runtime/
 
 # 本地维护笔记，不上传
 how-to-update.md
