@@ -20,6 +20,11 @@
     <EmbeddedResource Include="Assets\Web\**\*" />
   </ItemGroup>
 
+  <!-- WebView2 固定版运行时：存在时嵌入 exe，首次运行自动解压到 LocalAppData（该文件夹不入库） -->
+  <ItemGroup Condition="Exists('WebView2Runtime\msedgewebview2.exe')">
+    <EmbeddedResource Include="WebView2Runtime\**\*" LogicalName="wruntime/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.10" />

@@ -15,6 +15,7 @@ namespace CraftStation;
 public partial class WebPreviewWindow : Window
 {
     private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
+    private static readonly SemaphoreSlim RuntimeExtractLock = new(1, 1);
     private HtmlBridge? _bridge;
 
     public WebPreviewWindow()
@@ -42,7 +43,7 @@ public partial class WebPreviewWindow : Window
         try
         {
             Log.Information("WebView2 初始化开始");
-            var fixedRuntime = ResolveFixedRuntimeFolder();
+            var fixedRuntime = await ResolveFixedRuntimeFolderAsync();
             if (fixedRuntime != null)
             {
                 // 使用随包分发的固定版运行时，目标机无需安装 WebView2
@@ -58,7 +59,7 @@ public partial class WebPreviewWindow : Window
             }
             else
             {
-                Log.Information("未找到随包 WebView2 运行时，回退系统 Evergreen Runtime");
+                Log.Information("未找到随包/内嵌 WebView2 运行时，回退系统 Evergreen Runtime");
             }
             await WebView.EnsureCoreWebView2Async();
             var settings = WebView.CoreWebView2.Settings;
@@ -106,21 +107,93 @@ public partial class WebPreviewWindow : Window
         }
     }
 
-    private static string? ResolveFixedRuntimeFolder()
+    private static async Task<string?> ResolveFixedRuntimeFolderAsync()
     {
+        var localRoot = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            Config.AppName);
         foreach (var root in new[]
                  {
                      AppContext.BaseDirectory,
-                     Path.Combine(
-                         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                         Config.AppName)
+                     localRoot
                  })
         {
             var dir = Path.Combine(root, Config.WebView2RuntimeDirectoryName);
             if (File.Exists(Path.Combine(dir, "msedgewebview2.exe")))
                 return dir;
         }
-        return null;
+
+        // 内嵌固定版运行时：首次运行解压到 LocalAppData
+        return await ExtractEmbeddedRuntimeAsync(localRoot);
+    }
+
+    private static async Task<string?> ExtractEmbeddedRuntimeAsync(string localRoot)
+    {
+        const string prefix = "wruntime/";
+        var assembly = typeof(WebPreviewWindow).Assembly;
+        var names = assembly.GetManifestResourceNames()
+            .Where(n => n.StartsWith(prefix, StringComparison.Ordinal))
+            .ToList();
+        if (names.Count == 0)
+            return null;
+
+        var targetRoot = Path.Combine(localRoot, Config.WebView2RuntimeDirectoryName);
+        if (File.Exists(Path.Combine(targetRoot, "msedgewebview2.exe")))
+            return targetRoot;
+
+        await RuntimeExtractLock.WaitAsync();
+        try
+        {
+            if (File.Exists(Path.Combine(targetRoot, "msedgewebview2.exe")))
+                return targetRoot;
+
+            var tmp = Path.Combine(localRoot, Config.WebView2RuntimeDirectoryName + ".tmp-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tmp);
+            var tmpFull = Path.GetFullPath(tmp);
+            foreach (var name in names)
+            {
+                var rel = name[prefix.Length..]
+                    .Replace('/', Path.DirectorySeparatorChar)
+                    .Replace('\\', Path.DirectorySeparatorChar);
+                var target = Path.GetFullPath(Path.Combine(tmp, rel));
+                if (!target.StartsWith(tmpFull, StringComparison.OrdinalIgnoreCase))
+                    continue; // 防御路径逃逸
+                Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+                await using var src = assembly.GetManifestResourceStream(name);
+                if (src == null)
+                    continue;
+                await using var dst = File.Create(target);
+                await src.CopyToAsync(dst);
+            }
+
+            if (!File.Exists(Path.Combine(tmp, "msedgewebview2.exe")))
+            {
+                Directory.Delete(tmp, true);
+                return null;
+            }
+
+            if (Directory.Exists(targetRoot))
+                Directory.Delete(targetRoot, true); // 覆盖旧的不完整解压
+            Directory.Move(tmp, targetRoot);
+            return targetRoot;
+        }
+        catch
+        {
+            try
+            {
+                foreach (var d in Directory.EnumerateDirectories(localRoot, Config.WebView2RuntimeDirectoryName + ".tmp-*"))
+                    Directory.Delete(d, true);
+            }
+            catch
+            {
+                // 清理失败不影响回退系统运行时
+            }
+            return null;
+        }
+        finally
+        {
+            RuntimeExtractLock.Release();
+        }
     }
 
     private async void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)

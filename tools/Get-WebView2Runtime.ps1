@@ -25,6 +25,7 @@ if ($ZipPath) {
             Get-ChildItem -LiteralPath $srcRoot.FullName -Force | Move-Item -Destination $OutDir -Force
         }
         Write-Host "WebView2 固定版运行时已就绪: $OutDir"
+        Write-Host "提示：该文件夹会被编译进单文件 exe（首次运行自动解压），发布前请保留此目录。"
     }
     else {
         Write-Host "解压完成，但未找到 msedgewebview2.exe，请检查 zip 内容。"
