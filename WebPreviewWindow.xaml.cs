@@ -1,6 +1,8 @@
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Interop;
 using CraftStation.Core;
 using CraftStation.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -162,6 +164,21 @@ public partial class WebPreviewWindow : Window
     {
         try
         {
+            var hwnd = new WindowInteropHelper(this).Handle;
+            if (hwnd != IntPtr.Zero)
+            {
+                // 模拟标题栏按下：对无边框 + WebView2 窗口最可靠，也支持双击最大化
+                SendMessage(hwnd, WM_NCLBUTTONDOWN, (IntPtr)HTCAPTION, IntPtr.Zero);
+                return;
+            }
+        }
+        catch
+        {
+            // 回退到 WPF 原生拖动
+        }
+
+        try
+        {
             DragMove();
         }
         catch (InvalidOperationException)
@@ -169,4 +186,10 @@ public partial class WebPreviewWindow : Window
             // 鼠标已释放等情况下忽略，保持稳定
         }
     }
+
+    private const int WM_NCLBUTTONDOWN = 0xA1;
+    private const int HTCAPTION = 0x2;
+
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, int msg, IntPtr wParam, IntPtr lParam);
 }

@@ -80,6 +80,19 @@ html, body {
   backdrop-filter: blur(12px);
   user-select: none;
   -webkit-user-select: none;
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+.header input,
+.header button,
+.header select,
+.header textarea,
+.header a,
+.header .chip,
+.header .search-kbd,
+.header .window-controls {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-mark {
