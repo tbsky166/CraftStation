@@ -412,7 +412,7 @@ function bindVersions() {
     renderPage();
   });
   document.getElementById("versionsRefresh").addEventListener("click", async () => {
-    await refreshVersions();
+    await refreshVersions(true);
     renderPage();
   });
   document.querySelectorAll("[data-filter]").forEach((el) =>
@@ -1339,8 +1339,8 @@ function bindSettings() {
 
 /* ---------------- 数据刷新 ---------------- */
 
-async function refreshVersions() {
-  const r = await csCall("getVersions");
+async function refreshVersions(refresh = false) {
+  const r = await csCall("getVersions", { refresh });
   state.versions = r?.versions ?? [];
 }
 

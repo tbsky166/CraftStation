@@ -71,7 +71,7 @@ public sealed class HtmlBridge
         {
             // 状态 / 版本
             "getState" => await GetStateAsync(),
-            "getVersions" => await GetVersionsAsync(),
+            "getVersions" => await GetVersionsAsync(Bool(payload, "refresh", false)),
             "installVersion" => await InstallVersionAsync(Str(payload, "name")),
             "installVersionCustom" => await InstallVersionCustomAsync(payload),
             "repairVersion" => await RepairVersionAsync(Str(payload, "name")),
@@ -188,7 +188,24 @@ public sealed class HtmlBridge
     {
         var instance = _instances.Current;
         var account = _accounts.CurrentAccount;
-        var versions = await SafeVersionsAsync();
+        // 版本清单未加载时绝不阻塞仪表盘：先返回计数，后台异步预热
+        var versions = _launcher.IsVersionListLoaded
+            ? await SafeVersionsAsync()
+            : Array.Empty<VersionInfo>();
+        if (!_launcher.IsVersionListLoaded)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await SafeVersionsAsync();
+                }
+                catch
+                {
+                    // 预热失败下次轮询会重试
+                }
+            });
+        }
         return new
         {
             accountName = account?.DisplayName ?? "未登录",
@@ -202,11 +219,11 @@ public sealed class HtmlBridge
         };
     }
 
-    private async Task<IReadOnlyList<VersionInfo>> SafeVersionsAsync()
+    private async Task<IReadOnlyList<VersionInfo>> SafeVersionsAsync(bool refresh = false)
     {
         try
         {
-            return await _launcher.GetVersionsAsync(refresh: false);
+            return await _launcher.GetVersionsAsync(refresh);
         }
         catch
         {
@@ -214,9 +231,9 @@ public sealed class HtmlBridge
         }
     }
 
-    private async Task<object> GetVersionsAsync()
+    private async Task<object> GetVersionsAsync(bool refresh = false)
     {
-        var versions = await SafeVersionsAsync();
+        var versions = await SafeVersionsAsync(refresh);
         return new
         {
             versions = versions.Select(v => new
