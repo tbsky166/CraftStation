@@ -24,8 +24,8 @@
   --radius: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
-  --header-h: 56px;
-  --sidebar-w: 214px;
+  --header-h: clamp(48px, 6vh, 64px);
+  --sidebar-w: clamp(168px, 16vw, 240px);
   --font-display: "Rajdhani", "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
   --font-sans: "Noto Sans SC", "Microsoft YaHei UI", sans-serif;
   --font-mono: "JetBrains Mono", Consolas, monospace;
@@ -50,7 +50,7 @@ html, body {
   background-size: 36px 36px;
   color: var(--ink);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: clamp(13px, 0.55vw + 8px, 15px);
   overflow: hidden;
 }
 
@@ -114,7 +114,7 @@ html, body {
   flex: 1;
   display: flex;
   align-items: stretch;
-  max-width: 520px;
+  max-width: clamp(180px, 26vw, 520px);
   margin: 0 auto;
   position: relative;
   height: 36px;
@@ -324,9 +324,9 @@ html, body {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
-  padding: 24px 28px;
+  padding: clamp(16px, 2.4vw, 28px) clamp(14px, 2.2vw, 26px);
 }
-.page { max-width: 1280px; margin: 0 auto; }
+.page { max-width: min(100%, 1440px); margin: 0 auto; }
 
 /* ---- ef-chamfer / ef-chamfer-sm ---- */
 .ef-chamfer { clip-path: polygon(0 0, calc(100% - 9px) 0, 100% 9px, 100% 100%, 9px 100%, 0 calc(100% - 9px)); }
@@ -411,7 +411,7 @@ html, body {
 .hero {
   background: #141414;
   border: 1px solid var(--border);
-  padding: 34px 38px;
+  padding: clamp(20px, 3vw, 38px) clamp(18px, 3vw, 38px);
   margin-bottom: 20px;
   position: relative;
   overflow: hidden;
@@ -443,8 +443,8 @@ html, body {
 .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--success); margin-right: 8px; }
 
 /* ---- grid / cards ---- */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 12px; }
 .stat-value { font-family: var(--font-display); font-weight: 600; font-size: 30px; color: var(--ink); }
 .stat-label { color: var(--ink-muted); font-size: 12px; }
 .quick-card { display: flex; flex-direction: column; gap: 6px; text-align: left; }
@@ -540,7 +540,6 @@ html, body {
 
 @media (max-width: 900px) {
   .sidebar { display: none; }
-  .grid-4 { grid-template-columns: 1fr 1fr; }
   .hero-grid { grid-template-columns: 1fr; }
 }
 
@@ -548,7 +547,7 @@ html, body {
 /* ---- ?? ---- */
 .form-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
 .form-row > * { min-width: 0; }
-.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: 10px 14px; }
 .form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12px; color: var(--ink-muted); }
 .form-grid input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; }
 .check-line { flex-direction: row !important; align-items: center; gap: 8px !important; }
@@ -586,7 +585,8 @@ select.wiki-input { appearance: none; }
   background: var(--raised);
   border: 1px solid var(--accent);
   padding: 24px 28px;
-  min-width: 360px;
+  min-width: min(88vw, 420px);
+  max-width: min(92vw, 640px);
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
 }
 .modal-card a { color: var(--accent); }
@@ -853,4 +853,37 @@ select.wiki-input { appearance: none; }
   margin-left: 6px;
   font-size: 11px;
   color: var(--ink-subtle);
+}
+
+/* ============================================================
+   屏幕适配：任意窗口尺寸自适应（放在末尾确保覆盖基础规则）
+   ============================================================ */
+
+@media (max-width: 1100px) {
+  .grid-4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+}
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .hero { gap: 18px; }
+}
+
+@media (max-width: 720px) {
+  .header .chip { display: none; }
+  .brand-page { display: none; }
+  .header-search { max-width: none; }
+  .tabs { flex-wrap: wrap; }
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .modal-card { min-width: 92vw; }
+  .window-control { width: 40px; }
+}
+
+@media (max-width: 520px) {
+  .header { gap: 10px; padding: 0 10px; }
+  .brand-name { font-size: 16px; }
+  .grid-4 { grid-template-columns: 1fr; }
+  .window-control { width: 36px; }
+  .download-log { max-height: 40vh; }
+  .content { padding: 14px 10px; }
 }
