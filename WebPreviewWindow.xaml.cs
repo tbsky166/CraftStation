@@ -75,6 +75,15 @@ public partial class WebPreviewWindow : Window
         catch (Exception ex)
         {
             Log.Error(ex, "WebView2 初始化失败");
+            MessageBox.Show(
+                "WebView2 运行时初始化失败，界面无法加载。\n\n" +
+                "可能原因：未安装 WebView2 Runtime，或版本过旧。\n" +
+                "请安装 Microsoft Edge WebView2 Runtime（Evergreen）：\n" +
+                "https://developer.microsoft.com/microsoft-edge/webview2/\n\n" +
+                $"详细信息：{ex.Message}",
+                "CraftStation",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
     }
 

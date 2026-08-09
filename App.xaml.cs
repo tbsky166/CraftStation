@@ -70,26 +70,48 @@ public partial class App : Application
         services.AddSingleton<SettingsViewModel>();
         Services = services.BuildServiceProvider();
 
-        var settings = Services.GetRequiredService<ISettingsService>();
-        await settings.LoadAsync();
-        Log.Logger = new LoggerConfiguration()
-            .WriteTo.File(Path.Combine(settings.LogsDirectory, Config.LauncherLogFilePattern),
-                rollingInterval: RollingInterval.Day)
-            .CreateLogger();
-        Log.Information("CraftStation 启动");
+        try
+        {
+            var settings = Services.GetRequiredService<ISettingsService>();
+            await settings.LoadAsync();
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.File(Path.Combine(settings.LogsDirectory, Config.LauncherLogFilePattern),
+                    rollingInterval: RollingInterval.Day)
+                .CreateLogger();
+            Log.Information("CraftStation 启动，数据目录：{DataDirectory}", settings.DataDirectory);
 
-        await Services.GetRequiredService<IInstanceManager>().LoadAsync();
-        // 已有实例也统一预置中文语言
-        var instanceManager = Services.GetRequiredService<IInstanceManager>();
-        foreach (var instance in instanceManager.Instances)
-            GameOptionsHelper.EnsureChineseLanguage(instanceManager.GetGameDirectory(instance));
-        await Services.GetRequiredService<IAccountService>().InitializeAsync();
-        await Services.GetRequiredService<IServerService>().LoadAsync();
+            await Services.GetRequiredService<IInstanceManager>().LoadAsync();
+            // 已有实例也统一预置中文语言
+            var instanceManager = Services.GetRequiredService<IInstanceManager>();
+            foreach (var instance in instanceManager.Instances)
+                GameOptionsHelper.EnsureChineseLanguage(instanceManager.GetGameDirectory(instance));
+            await Services.GetRequiredService<IAccountService>().InitializeAsync();
+            await Services.GetRequiredService<IServerService>().LoadAsync();
 
-        // 默认启动入口：WebView2 内嵌 HTML 界面（fz.wiki 完整复刻）
-        var window = new WebPreviewWindow();
-        MainWindow = window;
-        window.Show();
+            // 默认启动入口：WebView2 内嵌 HTML 界面（fz.wiki 完整复刻）
+            var window = new WebPreviewWindow();
+            MainWindow = window;
+            window.Show();
+        }
+        catch (Exception ex)
+        {
+            try
+            {
+                Log.Error(ex, "CraftStation 启动失败");
+            }
+            catch
+            {
+                // 日志不可用时忽略
+            }
+            MessageBox.Show(
+                $"CraftStation 启动失败：\n\n{ex.Message}\n\n" +
+                "请确认程序所在目录可写（不要在 Program Files 等受保护目录运行），" +
+                "并已安装 WebView2 Runtime。",
+                "CraftStation",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            Shutdown(1);
+        }
     }
 
     protected override void OnExit(ExitEventArgs e)
