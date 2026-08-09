@@ -1266,7 +1266,7 @@ public sealed class HtmlBridge
     {
         try
         {
-            var list = await _java.ScanInstalledJavaAsync();
+            var list = await _java.ScanInstalledJavaAsync(refresh: true);
             return new
             {
                 javas = list.Select(j => new { j.Path, j.Version, j.Vendor, j.MajorVersion })
